@@ -1,4 +1,4 @@
-nclude <Adafruit_FONA.h>
+#include <Adafruit_FONA.h>
 
 #include <RFM69.h>
 #include <SPI.h>
@@ -296,6 +296,7 @@ if (DEBUG) {Serial.print("batteryMV="); Serial.println(battLevel);}
 
 // char conversions
 
+/*
         int           nodeId; //store this nodeId
   unsigned long packetCount; 
   float         therm;   //temperature maybe?
@@ -306,9 +307,7 @@ if (DEBUG) {Serial.print("batteryMV="); Serial.println(battLevel);}
  float sol_v = 1.;
  float bmp_temp = 2.;
  float bmp_press = 2.;
-float a1 = 1.;
-float a2 = 2.;
-float a3 = 3.;
+*/
 
   char thermChar[10];
   dtostrf(therm, 3, 2, thermChar);

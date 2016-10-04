@@ -13,7 +13,7 @@
 #include <SHT1x.h>
 
 #define RESOLUTION 1024
-#define VBATPIN A4
+#define VBATPIN A1
 
 #define SLEEPCYCLES 2   // at 8S ea
 
@@ -68,8 +68,8 @@ int samples[NUMSAMPLES];
 #define SERIAL_BAUD   115200
 
 
-#define sht_dataPin  10
-#define sht_clockPin 11
+#define sht_dataPin  6
+#define sht_clockPin 7
 SHT1x sht1x(sht_dataPin, sht_clockPin);
 
 int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
@@ -214,13 +214,6 @@ void loop() {
 
 
   
-  
-    // Read values from the sensor
-    /*
-  temp_c = sht1x.readTemperatureC();
-  humid = sht1x.readHumidity();
-  */
-  
  float measuredvbat = analogRead(VBATPIN);
   measuredvbat *= 2;    // we divided by 2, so multiply back
   measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
@@ -271,14 +264,19 @@ StaticJsonBuffer<200> jsonBuffer;
 
  //float therm = 3.;
    float therm = steinhart;
- float temp_s = 20.;
- float humid_s = 1.;
- float lux = 3.;
- float batt_v = 2.;
- float sol_v = 1.;
+   
+ float temp_s = 20.;  // sht1x.readTemperatureC();
+ float humid_s = 1.; // sht1x.readHumidity();
+ 
+ float lux = (float) analogRead(A3);
+ float batt_v = measuredvbat;
+ float sol_v = (float) analogRead(A2)*3*3.3/RESOLUTION;
  float bmp_temp = 2.;
  float bmp_press = 2.;
 
+
+ Serial.print("batt_v="); Serial.println(batt_v);
+ Serial.print("sol_v="); Serial.println(sol_v);
  
   //fill in the struct with new values
     theData.nodeId = NODEID;
