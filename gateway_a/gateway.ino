@@ -23,14 +23,14 @@ bool promiscuousMode = false; //set to 'true' to sniff all packets on the same n
 #define FONA_RST 4
 #define FONA_KEY 8
 #define FONA_POWER_STATUS A7
-#define failCountMax 6
+#define failCountMax 10
 
 
-char publicKey[]="88aKkPpBpdipE21jdQwEua2xpjl";
-char privateKey[]= "yLe3bPKlKASGDwRlY6WDhb5DY7Z";
+char publicKey[]="XZwaDOAYKYUMo39Yz8moHXAMw9e";
+char privateKey[]= "LYXAyEWwnwI0NnqGxD9NI4ROzw0";
 
 
-char sendBuffer[220];
+char sendBuffer[230];
 
 #ifdef __AVR__
 #include <SoftwareSerial.h>
@@ -57,8 +57,8 @@ typedef struct {
   float         lux;
   float         batt_v;
   float         sol_v;
-  float         bmp_press;
-  float         bmp_temp;
+  float         x1;
+  float         x2;
 } Payload;
 Payload theData;
 
@@ -114,6 +114,50 @@ return n;
 
 }
 
+void power_to_fona(int onoff) { // 0 = off, 1 = on
+  
+     int fonaPower=digitalRead(FONA_POWER_STATUS);
+
+    //Serial.print("FONA status is ");
+     Serial.println(fonaPower);
+     
+     if (!onoff) { // opposite of what we want, so trigger
+
+    //Serial.println("turning on ... ");
+    
+    digitalWrite(FONA_KEY, HIGH); //go back to non-trigger
+    digitalWrite(FONA_KEY, LOW); //turn on the SMS subcircuit
+    delay(2000); //so now it's on
+    digitalWrite(FONA_KEY, HIGH); //go back to non-trigger      
+    }
+    else {
+     // error! was already on for some reason -- do nothing
+     }
+}
+
+/*
+void power_down_fona() {
+  
+     int fonaPower=digitalRead(FONA_POWER_STATUS);
+
+    // Serial.print("FONA status is ");
+     //Serial.println(fonaPower);
+     
+     if (fonaPower) { // on, so power down
+
+    //Serial.println("turning on ... ");
+    
+    digitalWrite(FONA_KEY, HIGH); //go back to non-trigger
+    digitalWrite(FONA_KEY, LOW); //turn on the SMS subcircuit
+    delay(2000); //so now it's on
+    digitalWrite(FONA_KEY, HIGH); //go back to non-trigger      
+    }
+    else {
+     // error! was already on for some reason -- do nothing
+     }
+}
+
+*/
 
 void setup() {
 
@@ -122,6 +166,7 @@ void setup() {
   pinMode(FONA_KEY, OUTPUT);
   // make sure the FONA power cycling key is initially pulled 'high' -- i.e. not triggered
   digitalWrite(FONA_KEY, HIGH); //go back to non-trigger
+
 
   if (DEBUG) {
   while (!Serial);
@@ -144,15 +189,14 @@ void setup() {
   
   
   Serial.println(buff);
-  
+
+
+
 }
 
 byte ackCount=0;
 
 void loop() {  
-
-
-
 
 
   if (radio.receiveDone())
@@ -173,6 +217,7 @@ void loop() {
 
 // FONA
 
+
 if (DEBUG) Serial.println("Fona ...");
 
         int           nodeId; //store this nodeId
@@ -183,8 +228,8 @@ if (DEBUG) Serial.println("Fona ...");
   float         lux;
    float batt_v = 2.;
  float sol_v = 1.;
- float bmp_temp = 2.;
- float bmp_press = 2.;
+ float x2 = 2.;
+ float x1 = 2.;
 
 
 
@@ -196,12 +241,12 @@ if (DEBUG) Serial.println("Fona ...");
    lux = theData.lux;
    batt_v = theData.batt_v;
    sol_v = theData.sol_v;
-   bmp_press = theData.bmp_press;
-   bmp_temp =  theData.bmp_temp;
+   x1 = theData.x1;
+   x2 =  theData.x2;
 
     
 
-//  power_up_fona();
+   power_to_fona(1);  // in case not powered
 
   int fonaStatus=initialize_fona();
 
@@ -209,11 +254,17 @@ if (DEBUG) Serial.println("Fona ...");
   if (!fonaStatus) { 
      if (DEBUG) Serial.println("FONA not found");
 
-//    power_down_fona();
+
+   power_to_fona(0);  
+//   power_to_fona(1);
+
+//power_down_fona();
+
+//  power_up_fona();
 
 //   if (!DEBUG) go_to_sleep_minutes(sleepMinutes); 
     
-   if(DEBUG) delay(60000);
+   //if(DEBUG) delay(60000);
    
   }
 
@@ -223,7 +274,11 @@ if (DEBUG) Serial.println("Fona ...");
   
   if ((networkStatus!=1)&&(networkStatus!=5)) {
      if (DEBUG) Serial.println("Couldn't find network in failCountMax tries. Aborting.");
-   
+
+power_to_fona(0);
+
+ // power_up_fona();
+  
   }
   
   if (((networkStatus==1)||(networkStatus==5))&&fonaStatus) {  //then we're good to send a message!
@@ -288,10 +343,10 @@ if (DEBUG) {
 */
 
 // get battery level
-uint16_t battLevel;
-fona.getBattVoltage(&battLevel);
+uint16_t f_batt;
+fona.getBattVoltage(&f_batt);
 
-if (DEBUG) {Serial.print("batteryMV="); Serial.println(battLevel);}
+if (DEBUG) {Serial.print("batteryMV="); Serial.println(f_batt);}
 
 
 // char conversions
@@ -305,7 +360,7 @@ if (DEBUG) {Serial.print("batteryMV="); Serial.println(battLevel);}
   float         lux;
    float batt_v = 2.;
  float sol_v = 1.;
- float bmp_temp = 2.;
+ float x2 = 2.;
  float bmp_press = 2.;
 */
 
@@ -318,20 +373,25 @@ if (DEBUG) {Serial.print("batteryMV="); Serial.println(battLevel);}
  char humidChar[10];
   dtostrf(humid_s,3,2,humidChar);
 
-   char luxChar[10];
-  dtostrf(lux,3,2,luxChar);
+
+int f_temp_bits = analogRead(A0); // thermistor connected to A0
+   char f_tempChar[10];
+  dtostrf(f_temp_bits,3,2,f_tempChar);
   
-  char battChar[10];
+  char battChar[10]; /// remote battery
   dtostrf(batt_v,3,3,battChar);
+
+  char f_battChar[10]; // fona battery
+  dtostrf(f_batt/1000.,3,3,f_battChar);
 
  char solChar[10];
   dtostrf(sol_v,3,3,solChar);
 
-   char bmp_pressChar[10];
-  dtostrf(bmp_press,3,3,bmp_pressChar);
+   char x1Char[10];
+  dtostrf(x1,3,3,x1Char);
 
-   char bmp_tempChar[10];
-  dtostrf(bmp_temp,3,3,bmp_tempChar);
+   char x2Char[10];
+  dtostrf(x2,3,3,x2Char);
 
  //  char a1Char[10];
   //dtostrf(a1,3,3,a1Char);
@@ -388,7 +448,7 @@ char packetCountChar[10];
   //sprintf(sendBuffer,"AT+HTTPPARA=\"URL\",\"http://159.203.128.53/input/QlbwjXBaPqf1lwg2rO0lfJgoBek?private_key=3zRgpd2Wq6irKN4v5yWKsl5GxO8&therm=20.00&temp=1.00&humid=1.00&batt=4.190&lux=3.00&sensorid=1&packetcount=61\"");
 
 
-    sprintf(sendBuffer,"AT+HTTPPARA=\"URL\",\"http://159.203.128.53/input/%s?private_key=%s&therm=%s&temp_s=%s&humid_s=%s&batt_v=%s&lux=%s&sol_v=%s&bmp_press=%s&bmp_temp=%s&sensorid=%s&packetcount=%s\"",publicKey,privateKey,thermChar,tempChar,humidChar,battChar,luxChar,solChar,bmp_pressChar,bmp_tempChar,idChar,packetCountChar);
+    sprintf(sendBuffer,"AT+HTTPPARA=\"URL\",\"http://159.203.128.53/input/%s?private_key=%s&therm=%s&temp_s=%s&humid_s=%s&batt_v=%s&f_batt=%s&sol_v=%s&f_temp_bits=%s&x1=%s&x2=%s&sensorid=%s&packetcount=%s\"",publicKey,privateKey,thermChar,tempChar,humidChar,battChar,f_battChar,solChar,f_tempChar,x1Char, x2Char,idChar,packetCountChar);
 
 
   fona.sendCheckReply(sendBuffer,"OK");

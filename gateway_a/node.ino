@@ -15,7 +15,7 @@
 #define RESOLUTION 1024
 #define VBATPIN A1
 
-#define SLEEPCYCLES 2   // at 8S ea
+#define SLEEPCYCLES 112   // at 8S ea
 
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
@@ -109,8 +109,8 @@ typedef struct {
   float         lux;
   float         batt_v;
   float         sol_v;
-  float         bmp_press;
-  float         bmp_temp;
+  float         x1;
+  float         x2;
 
    
 } Payload;
@@ -271,8 +271,8 @@ StaticJsonBuffer<200> jsonBuffer;
  float lux = (float) analogRead(A3);
  float batt_v = measuredvbat;
  float sol_v = (float) analogRead(A2)*3*3.3/RESOLUTION;
- float bmp_temp = 2.;
- float bmp_press = 2.;
+ float x1 = (float) analogRead(A6);
+ float x2 = (float) analogRead(A7);
 
 
  Serial.print("batt_v="); Serial.println(batt_v);
@@ -287,8 +287,8 @@ StaticJsonBuffer<200> jsonBuffer;
     theData.lux = lux;
     theData.batt_v = batt_v;
     theData.sol_v = sol_v;
-    theData.bmp_press = bmp_press;
-    theData.bmp_temp = bmp_temp;
+    theData.x1 = x1;
+    theData.x2 = x2;
    
     
  Serial.print("Sending struct (");
