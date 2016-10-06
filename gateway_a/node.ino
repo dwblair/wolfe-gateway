@@ -15,6 +15,8 @@
 #define RESOLUTION 1024
 #define VBATPIN A1
 
+#define soil_moisture_connected 1
+
 #define SLEEPCYCLES 112   // at 8S ea
 
 //*********************************************************************************************
@@ -264,9 +266,26 @@ StaticJsonBuffer<200> jsonBuffer;
 
  //float therm = 3.;
    float therm = steinhart;
-   
- float temp_s = 20.;  // sht1x.readTemperatureC();
- float humid_s = 1.; // sht1x.readHumidity();
+
+float temp_s;
+float humid_s;
+
+ if (soil_moisture_connected) {
+ temp_s = sht1x.readTemperatureC();
+ humid_s = sht1x.readHumidity();
+ } else 
+ { 
+ temp_s = 20.; 
+ humid_s = 1.; 
+ }
+
+ temp_s = sht1x.readTemperatureC();
+ humid_s = sht1x.readHumidity();
+ 
+ Serial.print("temp_s=");
+ Serial.print(temp_s);
+ Serial.print("; humid_s=");
+ Serial.println(humid_s);
  
  float lux = (float) analogRead(A3);
  float batt_v = measuredvbat;
